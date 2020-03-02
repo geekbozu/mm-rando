@@ -91,10 +91,7 @@ namespace MMR.Randomizer
                 }
             }
 
-            //settings.InputPatchFilename = null;
-
             return new ProcessResult(ProcessState.Success);
-            //return "Generation complete!";
         }
     }
 
