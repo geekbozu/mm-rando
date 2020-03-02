@@ -1,13 +1,35 @@
 ﻿using MMR.Randomizer.Models;
 using MMR.Randomizer.Models.Settings;
+using MMR.Randomizer.Patch;
 using MMR.Randomizer.Utils;
 using System;
 
 namespace MMR.Randomizer
 {
+    public enum ProcessState
+    {
+        Success,
+        Exception,
+        Cancelled,
+        InvalidROM,
+    }
+
+    public class ProcessResult
+    {
+        public ProcessState State { get; }
+
+        public string ErrorMessage { get; }
+
+        public ProcessResult(ProcessState state, string errorMsg = null)
+        {
+            this.State = state;
+            this.ErrorMessage = errorMsg;
+        }
+    }
+
     public static class ConfigurationProcessor
     {
-        public static string Process(Configuration configuration, int seed, IProgressReporter progressReporter)
+        public static ProcessResult Process(Configuration configuration, int seed, IProgressReporter progressReporter, Callbacks callbacks = null)
         {
             var randomizer = new Randomizer(configuration.GameplaySettings, seed);
             RandomizedResult randomized = null;
@@ -20,11 +42,12 @@ namespace MMR.Randomizer
                 catch (RandomizationException ex)
                 {
                     string nl = Environment.NewLine;
-                    return $"Error randomizing logic: {ex.Message}{nl}{nl}Please try a different seed";
+                    return new ProcessResult(ProcessState.Exception,
+                        $"Error randomizing logic: {ex.Message}{nl}{nl}Please try a different seed");
                 }
                 catch (Exception ex)
                 {
-                    return ex.Message;
+                    return new ProcessResult(ProcessState.Exception, ex.Message);
                 }
 
                 if (configuration.OutputSettings.GenerateSpoilerLog
@@ -38,33 +61,39 @@ namespace MMR.Randomizer
             {
                 if (!RomUtils.ValidateROM(configuration.OutputSettings.InputROMFilename))
                 {
-                    return "Cannot verify input ROM is Majora's Mask (U).";
+                    return new ProcessResult(ProcessState.InvalidROM, "Cannot verify input ROM is Majora's Mask (U).");
                 }
 
                 var builder = new Builder(randomized, configuration.CosmeticSettings);
 
                 try
                 {
-                    builder.MakeROM(configuration.OutputSettings, progressReporter);
+                    var result = builder.MakeROM(configuration.OutputSettings, progressReporter, callbacks);
+
+                    if (result)
+                        return new ProcessResult(ProcessState.Success);
+                    else
+                        return new ProcessResult(ProcessState.Cancelled);
                 }
                 catch (PatchMagicException)
                 {
-                    return $"Error applying patch: Not a valid patch file";
+                    return new ProcessResult(ProcessState.Exception, $"Error applying patch: Not a valid patch file");
                 }
-                catch (PatchVersionException ex)
+                catch (PatchFormatException ex)
                 {
-                    return $"Error applying patch: {ex.Message}";
+                    return new ProcessResult(ProcessState.Exception, $"Error applying patch: {ex.Message}");
                 }
                 catch (Exception ex)
                 {
                     string nl = Environment.NewLine;
-                    return $"Error building ROM: {ex.Message}{nl}{nl}Please contact the development team and provide them more information";
+                    return new ProcessResult(ProcessState.Exception,
+                        $"Error building ROM: {ex.Message}{nl}{nl}Please contact the development team and provide them more information");
                 }
             }
 
             //settings.InputPatchFilename = null;
 
-            return null;
+            return new ProcessResult(ProcessState.Success);
             //return "Generation complete!";
         }
     }

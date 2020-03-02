@@ -1320,7 +1320,7 @@ namespace MMR.Randomizer
                 config.MagicOverride = null;
         }
 
-        public void MakeROM(OutputSettings outputSettings, IProgressReporter progressReporter)
+        public bool MakeROM(OutputSettings outputSettings, IProgressReporter progressReporter, Callbacks callbacks = null)
         {
             using (BinaryReader OldROM = new BinaryReader(File.Open(outputSettings.InputROMFilename, FileMode.Open, FileAccess.Read)))
             {
@@ -1334,7 +1334,11 @@ namespace MMR.Randomizer
             if (!string.IsNullOrWhiteSpace(outputSettings.InputPatchFilename))
             {
                 progressReporter.ReportProgress(50, "Applying patch...");
-                hash = RomUtils.ApplyPatch(outputSettings.InputPatchFilename);
+                if (!RomUtils.ApplyPatch(outputSettings.InputPatchFilename, out hash, callbacks?.PatchVersionWarning))
+                {
+                    progressReporter.ReportProgress(0, "Aborting patch application");
+                    return false;
+                }
 
                 // Parse Symbols data from the ROM (specific MMFile)
                 var asm = AsmContext.LoadFromROM();
@@ -1437,6 +1441,7 @@ namespace MMR.Randomizer
             }
             progressReporter.ReportProgress(100, "Done!");
 
+            return true;
         }
 
     }

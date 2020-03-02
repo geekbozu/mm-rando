@@ -14,6 +14,7 @@ using MMR.Randomizer.Utils;
 using MMR.Randomizer.Asm;
 using MMR.Randomizer.Models.Colors;
 using MMR.Common.Utils;
+using MMR.Randomizer.Patch;
 
 namespace MMR.UI.Forms
 {
@@ -139,6 +140,22 @@ namespace MMR.UI.Forms
             TooltipBuilder.SetTooltip(cGoodDogRaceRNG, "Make Gold Dog always win if you have the Mask of Truth.");
             TooltipBuilder.SetTooltip(cFasterLabFish, "Change Lab Fish to only need to be fed one fish.");
             TooltipBuilder.SetTooltip(cFastPush, "Increase the speed of pushing and pulling blocks and faucets.");
+        }
+
+        /// <summary>
+        /// Displays a warning <see cref="MessageBox"/> to prompt the user whether or not they want to apply an older patch file.
+        /// </summary>
+        /// <param name="header">Patch header</param>
+        /// <returns>True if user selected OK, false if user selected Cancel</returns>
+        bool PatchVersionWarningCallback(PatchHeader header)
+        {
+            var inferred = header.InferredVersion;
+            var message = $"Applying an older patch from version: {inferred}\n\n" +
+                           "This patch uses code from previous versions and may not include updated features and bug fixes. " +
+                           "Are you sure you would like to apply it?";
+            var title = "Applying Older Patch";
+            var result = MessageBox.Show(this, message, title, MessageBoxButtons.OKCancel, MessageBoxIcon.Warning);
+            return result == DialogResult.OK;
         }
 
         /// <summary>
@@ -1086,17 +1103,22 @@ namespace MMR.UI.Forms
         /// </summary>
         private void TryRandomize(BackgroundWorker worker, DoWorkEventArgs e)
         {
+            var callbacks = new Callbacks();
+            callbacks.PatchVersionWarning = this.PatchVersionWarningCallback;
+
             var seed = Convert.ToInt32(tSeed.Text);
-            var result = ConfigurationProcessor.Process(_configuration, seed, new BackgroundWorkerProgressReporter(worker));
-            if (result != null)
-            {
-                MessageBox.Show(result, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return;
-            }
+            var result = ConfigurationProcessor.Process(_configuration, seed, new BackgroundWorkerProgressReporter(worker), callbacks);
 
             _configuration.OutputSettings.InputPatchFilename = null;
 
-            MessageBox.Show("Generation complete!", "Success", MessageBoxButtons.OK, MessageBoxIcon.None);
+            if (result.ErrorMessage != null)
+            {
+                MessageBox.Show(result.ErrorMessage, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+            else if (result.State == ProcessState.Success)
+            {
+                MessageBox.Show("Generation complete!", "Success", MessageBoxButtons.OK, MessageBoxIcon.None);
+            }
         }
 
         private bool ValidateSettingsFile(String[] lines)

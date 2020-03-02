@@ -145,6 +145,11 @@ namespace MMR.Randomizer.Utils
             ROM.Write(Byteswap32(val));
         }
 
+        public static void WriteS32(BinaryWriter ROM, int val)
+        {
+            WriteU32(ROM, (uint)val);
+        }
+
         public static void WriteU16(BinaryWriter ROM, ushort val)
         {
             ROM.Write(Byteswap16(val));
