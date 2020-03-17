@@ -66,11 +66,11 @@ namespace MMR.Randomizer
                 {
                     return ex.Message;
                 }
-                catch (Exception ex)
-                {
-                    string nl = Environment.NewLine;
-                    return $"Error building ROM: {ex.Message}{nl}{nl}Please contact the development team and provide them more information";
-                }
+                //catch (Exception ex)
+                //{
+                //    string nl = Environment.NewLine;
+                //    return $"Error building ROM: {ex.Message}{nl}{nl}Please contact the development team and provide them more information";
+                //}
             }
 
             //settings.InputPatchFilename = null;

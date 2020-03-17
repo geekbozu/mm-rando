@@ -54,10 +54,9 @@ namespace MMR.Randomizer.Utils
             PatchApp1(dpadConfig, VCDir);
             ProcessStartInfo p = new ProcessStartInfo
             {
-                FileName = "wadpacker.exe",
+                FileName = Path.Combine(VCDir, "wadpacker.exe"),
                 Arguments = "mm.tik mm.tmd mm.cert \"" + FileName + "\" -i NMRE",
                 WorkingDirectory = VCDir,
-                UseShellExecute = true,
             };
             Process.Start(p);
         }

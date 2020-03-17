@@ -4,6 +4,7 @@ using MMR.Randomizer.Attributes;
 using MMR.Randomizer.Constants;
 using MMR.Randomizer.Extensions;
 using MMR.Randomizer.GameObjects;
+using MMR.Randomizer.Icons;
 using MMR.Randomizer.Models;
 using MMR.Randomizer.Models.Colors;
 using MMR.Randomizer.Models.Rom;
@@ -1374,13 +1375,14 @@ namespace MMR.Randomizer
             var originalMMFileList = RomData.MMFileList.Select(file => file.Clone()).ToList();
 
             byte[] hash;
+            AsmContext asm;
             if (!string.IsNullOrWhiteSpace(outputSettings.InputPatchFilename))
             {
                 progressReporter.ReportProgress(50, "Applying patch...");
                 hash = RomUtils.ApplyPatch(outputSettings.InputPatchFilename);
 
                 // Parse Symbols data from the ROM (specific MMFile)
-                var asm = AsmContext.LoadFromROM();
+                asm = AsmContext.LoadFromROM();
 
                 // Apply Asm configuration post-patch
                 WriteAsmConfigPostPatch(asm, hash);
@@ -1438,7 +1440,7 @@ namespace MMR.Randomizer
                 WriteStartupStrings();
 
                 // Load Asm data from internal resource files and apply
-                var asm = AsmContext.LoadInternal();
+                asm = AsmContext.LoadInternal();
                 progressReporter.ReportProgress(70, "Writing ASM patch...");
                 WriteAsmPatch(asm);
                 
@@ -1479,6 +1481,13 @@ namespace MMR.Randomizer
                     VCInjectionUtils.BuildVC(ROM, _cosmeticSettings.AsmOptions.DPadConfig, Values.VCDirectory, Path.ChangeExtension(outputSettings.OutputROMFilename, "wad"));
                 }
             }
+
+            using (var icons = IconStrip.Load(new HashData(hash), asm.Symbols))
+            {
+                var filename = Path.ChangeExtension(outputSettings.OutputROMFilename, "png");
+                icons.Save(filename);
+            }
+
             progressReporter.ReportProgress(100, "Done!");
 
         }

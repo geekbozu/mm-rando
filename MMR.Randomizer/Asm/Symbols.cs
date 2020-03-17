@@ -72,6 +72,20 @@ namespace MMR.Randomizer.Asm
         }
 
         /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
+        public byte[] ReadHashIconsTable()
+        {
+            var addr = this["HASH_ICONS"];
+            var count = ReadWriteUtils.ReadU16((int)(addr + 4));
+            if (count != 0x40)
+                throw new Exception("Bad symbol count for hash icons");
+            var bytes = ReadWriteUtils.ReadBytes((int)(addr + 6), count);
+            return bytes;
+        }
+
+        /// <summary>
         /// Write an <see cref="AsmConfig"/> structure to ROM.
         /// </summary>
         /// <param name="symbol">Symbol</param>
